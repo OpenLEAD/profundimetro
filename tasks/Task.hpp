@@ -4,29 +4,23 @@
 #define PROFUNDIMETRO_TASK_TASK_HPP
 
 #include "profundimetro/TaskBase.hpp"
+#include <vector>
+#include <algorithm>
+
 
 namespace profundimetro {
 
-    /*! \class Task 
-     * \brief The task context provides and requires services. It uses an ExecutionEngine to perform its functions.
-     * Essential interfaces are operations, data flow ports and properties. These interfaces have been defined using the oroGen specification.
-     * In order to modify the interfaces you should (re)use oroGen and rely on the associated workflow.
-     * 
-     * \details
-     * The name of a TaskContext is primarily defined via:
-     \verbatim
-     deployment 'deployment_name'
-         task('custom_task_name','profundimetro::Task')
-     end
-     \endverbatim
-     *  It can be dynamically adapted when the deployment is called with a prefix argument. 
-     */
+
     class Task : public TaskBase
     {
 	friend class TaskBase;
     protected:
-
-
+	iodrivers_base::RawPacket StartData;
+	iodrivers_base::RawPacket rawpacket;
+	std::vector<uint8_t> current_packet;
+	std::vector<uint8_t> data;
+	int bytes_received;
+	const std::vector<uint8_t> msg_start = {0xFA,0x30,0x04,0x43};
 
     public:
         /** TaskContext constructor for Task
