@@ -68,7 +68,9 @@ bool Task::startHook()
 	raw_io::Digital f = {time,true};
 	StartData.time = time;
 	_send485.write(t);
+	usleep(1000);
 	_outputRaw.write(StartData);
+	usleep(1000);
 	_send485.write(f);
     	return true;
 }
@@ -93,7 +95,9 @@ void Task::updateHook()
 	raw_io::Digital t = {time,true};
 	raw_io::Digital f = {time,true};
 	_send485.write(t);
+	usleep(1000);
 	_outputRaw.write(sendData);
+	usleep(1000);
 	_send485.write(f);
 
 	while (_inputRaw.read(rawpacket) == RTT::NewData){
