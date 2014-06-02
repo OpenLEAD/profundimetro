@@ -20,8 +20,8 @@ namespace profundimetro {
 	std::vector<uint8_t> current_packet;
 	std::vector<uint8_t> data;
 	int bytes_received;
-	const std::vector<uint8_t> msg_start = {0xFA,0x30,0x04,0x43};
-
+	
+	std::vector<uint8_t> msg_start; 
     public:
         /** TaskContext constructor for Task
          * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.

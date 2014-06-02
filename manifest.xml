@@ -14,4 +14,5 @@
   <depend package="dummy-dependency-n" />
   -->
   <depend package="drivers/orogen/iodrivers_base" />
+  <depend package="drivers/orogen/raw_io"/>
 </package>

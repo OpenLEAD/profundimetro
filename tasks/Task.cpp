@@ -25,12 +25,20 @@ uint16_t crc16_update(uint16_t crc, uint8_t a)
 Task::Task(std::string const& name)
     : TaskBase(name)
 {
+	msg_start.push_back(0xFA);
+	msg_start.push_back(0x30);
+	msg_start.push_back(0x04);
+	msg_start.push_back(0x43);
 	StartData.data = msg_start;
 }
 
 Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
     : TaskBase(name, engine)
 {
+	msg_start.push_back(0xFA);
+	msg_start.push_back(0x30);
+	msg_start.push_back(0x04);
+	msg_start.push_back(0x43);
 	StartData.data = msg_start;
 }
 
@@ -56,9 +64,12 @@ bool Task::startHook()
        		return false;
 
 	base::Time time = base::Time::now();
-
+	raw_io::Digital t = {time,true};
+	raw_io::Digital f = {time,true};
 	StartData.time = time;
-	_outRaw.write(StartData);
+	_send485.write(t);
+	_outputRaw.write(StartData);
+	_send485.write(f);
     	return true;
 }
 void Task::updateHook()
@@ -70,33 +81,46 @@ void Task::updateHook()
 
 	iodrivers_base::RawPacket sendData;
 	sendData.time = time;
-	std::vector<uint8_t> msg = {0xFA,0x49,0x01,0xA1,0xA7};
+	
+	std::vector<uint8_t> msg;
+	msg.push_back(0xFA); //250
+	msg.push_back(0x4A); //func 74
+	msg.push_back(0x30);
+	msg.push_back(0x01);
+	msg.push_back(0xA1);
+	msg.push_back(0xA7);
 	sendData.data = msg;
-	_outRaw.write(sendData);
+	raw_io::Digital t = {time,true};
+	raw_io::Digital f = {time,true};
+	_send485.write(t);
+	_outputRaw.write(sendData);
+	_send485.write(f);
+
 	while (_inputRaw.read(rawpacket) == RTT::NewData){
 		index = 0;
 		current_packet.insert(current_packet.end(), rawpacket.data.begin(), rawpacket.data.end());
 		len = rawpacket.data.size();
-		while ( len > 0 ){
-			 std::vector<int>::iterator it;
-
- 			 // iterator to vector element:
+		while ( current_packet.size() >= 9 ){
+			
+			std::vector<uint8_t>::iterator it;
+ 			// iterator to vector element:
   			it = std::find (current_packet.begin(), current_packet.end(), 0xFA);
-			int index= std::distance(current_packet.begin(), it);
-			if(*it==current_packet.end()){
+			int index = std::distance(current_packet.begin(), it);
+
+			if(*it==*current_packet.end()){
 				current_packet.erase(current_packet.begin(),it);
 				break;
 			}
 
 			if(*(it+1)&(1>>7)){
 				StartData.time = time;
-				_outRaw.write(StartData);
-				//current_packet.erase(current_packet.begin(),it+1);
+				_outputRaw.write(StartData);
+				current_packet.erase(current_packet.begin(),it+1);
 				continue;
 			}
 
-			if(*(it+1)!=0x49){
-				//current_packet.erase(current_packet.begin(),it+1);
+			if(*(it+1)!=0x4A){
+				current_packet.erase(current_packet.begin(),it+1);
 				continue;
 			}
 
@@ -105,21 +129,19 @@ void Task::updateHook()
 			for(int i=0;i<7;i++)
 				crc = crc16_update(crc, *(it+i));
 			
-			uint16_t *crc_real = it+8;
+			uint16_t *crc_real = (uint16_t*) &current_packet[index+7];
 			
-			if(crc_real!=crc){
-				//current_packet.erase(current_packet.begin(),it+9);
+			if(*crc_real!=crc){
+				current_packet.erase(current_packet.begin());
+				continue;
+			}
 
+			uint32_t pressure;
+			memcpy(&pressure,&current_packet[index],4);
+			_depth.write(pressure);
 			
-				
-				
+			current_packet.erase(current_packet.begin(),current_packet.begin()+9);
 			
-			
-	
-			
-			
-			
-		len -= bytes_received;
 		}
 	}
 
